@@ -1157,8 +1157,8 @@ static uint32_t nb_func_render_signature(const func_data *f,
 
                 arg_index++;
 
-                if (arg_index == f->nargs_pos && !has_args)
-                    buf.put(", /");
+//                if (arg_index == f->nargs_pos && !has_args)
+//                    buf.put(", /");
 
                 break;
 
@@ -1339,32 +1339,37 @@ PyObject *nb_func_get_doc(PyObject *self, void *) {
 
     for (uint32_t i = 0; i < count; ++i) {
         const func_data *fi = f + i;
-        nb_func_render_signature(fi);
-        buf.put('\n');
         doc_found |= (fi->flags & (uint32_t) func_flags::has_doc) != 0;
     }
 
-    if (doc_found) {
-        if (((nb_func *) self)->doc_uniform) {
+    if (doc_found && !((nb_func *) self)->doc_uniform) {
+        buf.put("\nOverloaded function.\n");
+        for (uint32_t i = 0; i < count; ++i) {
+            const func_data *fi = f + i;
+
             buf.put('\n');
+            buf.put_uint32(i + 1);
+            buf.put(". `");
+            nb_func_render_signature(fi);
+            buf.put("`\n\n");
+
+            if (fi->flags & (uint32_t) func_flags::has_doc) {
+                buf.put_dstr(fi->doc);
+                buf.put('\n');
+            }
+        }
+    }
+    else {
+        for (uint32_t i = 0; i < count; ++i) {
+            const func_data *fi = f + i;
+            buf.put("`");
+            nb_func_render_signature(fi);
+            buf.put("`\n\n");
+        }
+
+        if (doc_found) {
             buf.put_dstr(f->doc);
             buf.put('\n');
-        } else {
-            buf.put("\nOverloaded function.\n");
-            for (uint32_t i = 0; i < count; ++i) {
-                const func_data *fi = f + i;
-
-                buf.put('\n');
-                buf.put_uint32(i + 1);
-                buf.put(". ``");
-                nb_func_render_signature(fi);
-                buf.put("``\n\n");
-
-                if (fi->flags & (uint32_t) func_flags::has_doc) {
-                    buf.put_dstr(fi->doc);
-                    buf.put('\n');
-                }
-            }
         }
     }
 
